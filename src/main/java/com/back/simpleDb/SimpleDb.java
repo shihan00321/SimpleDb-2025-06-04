@@ -21,15 +21,19 @@ public class SimpleDb {
         this.password = password;
     }
 
-    public void run(String query, Object... params) {
+    public long run(String query, Object... params) {
         try (Connection connection = DriverManager.getConnection(url, username, password);
             PreparedStatement pstmt = connection.prepareStatement(query)) {
             for (int i = 0; i < params.length; i++) {
                 pstmt.setObject(i + 1, params[i]);
             }
-            pstmt.executeUpdate();
+            return pstmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public Sql genSql() {
+        return new Sql(this);
     }
 }
