@@ -71,6 +71,14 @@ public class SimpleDb {
         }, query);
     }
 
+    public String selectString(String query) {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                return resultSet.next() ? resultSet.getString(1) : null;
+            }
+        }, query);
+    }
+
     private Map<String, Object> resultSetToMap(ResultSet rs) throws SQLException {
         Map<String, Object> row = new LinkedHashMap<>();
         ResultSetMetaData metaData = rs.getMetaData();

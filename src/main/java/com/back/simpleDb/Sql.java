@@ -48,4 +48,8 @@ public class Sql {
     public Long selectLong() {
         return simpleDb.selectLong(query.toString());
     }
+
+    public String selectString() {
+        return simpleDb.selectString(query.toString());
+    }
 }
