@@ -27,42 +27,25 @@ public class SimpleDb {
         return execute(pstmt -> pstmt.executeUpdate(), query, params);
     }
 
-    public List<Map<String, Object>> selectAll(String query) {
+    public Map<String, Object> select(String query) {
         return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                ResultSetMetaData metaData = resultSet.getMetaData();
-                int columnCount = metaData.getColumnCount();
-                List<Map<String, Object>> result = new ArrayList<>();
-                while (resultSet.next()) {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    for (int i = 1; i <= columnCount; i++) {
-                        String columnName = metaData.getColumnName(i);
-                        row.put(columnName, resultSet.getObject(columnName));
-                    }
-                    result.add(row);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return resultSetToMap(rs);
                 }
-                return result;
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
+                return null;
             }
         }, query);
     }
 
-    public Map<String, Object> select(String query) {
+    public List<Map<String, Object>> selectAll(String query) {
         return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                ResultSetMetaData metaData = resultSet.getMetaData();
-                int columnCount = metaData.getColumnCount();
-                Map<String, Object> row = new LinkedHashMap<>();
-                while (resultSet.next()) {
-                    for (int i = 1; i <= columnCount; i++) {
-                        String columnName = metaData.getColumnName(i);
-                        row.put(columnName, resultSet.getObject(columnName));
-                    }
+            try (ResultSet rs = pstmt.executeQuery()) {
+                List<Map<String, Object>> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(resultSetToMap(rs));
                 }
-                return row;
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
+                return result;
             }
         }, query);
     }
@@ -78,6 +61,17 @@ public class SimpleDb {
                 throw new RuntimeException(e);
             }
         }, query);
+    }
+
+    private Map<String, Object> resultSetToMap(ResultSet rs) throws SQLException {
+        Map<String, Object> row = new LinkedHashMap<>();
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        for (int i = 1; i <= columnCount; i++) {
+            String columnName = metaData.getColumnName(i);
+            row.put(columnName, rs.getObject(i));
+        }
+        return row;
     }
 
     private <T> T execute(QueryExecutor<T> queryExecutor, String query, Object... params) {
