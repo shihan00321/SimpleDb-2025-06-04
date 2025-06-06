@@ -63,6 +63,14 @@ public class SimpleDb {
         }, query);
     }
 
+    public Long selectLong(String query) {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                return resultSet.next() ? resultSet.getLong(1) : null;
+            }
+        }, query);
+    }
+
     private Map<String, Object> resultSetToMap(ResultSet rs) throws SQLException {
         Map<String, Object> row = new LinkedHashMap<>();
         ResultSetMetaData metaData = rs.getMetaData();
@@ -72,6 +80,10 @@ public class SimpleDb {
             row.put(columnName, rs.getObject(i));
         }
         return row;
+    }
+
+    public Sql genSql() {
+        return new Sql(this);
     }
 
     private <T> T execute(QueryExecutor<T> queryExecutor, String query, Object... params) {
@@ -86,12 +98,7 @@ public class SimpleDb {
         }
     }
 
-    public Sql genSql() {
-        return new Sql(this);
-    }
-
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(url, username, password);
     }
-
 }
