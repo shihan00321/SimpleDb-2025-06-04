@@ -1,29 +1,29 @@
 package com.back.simpleDb;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Sql {
     private final StringBuilder query = new StringBuilder();
-    private final List<Object> params = new ArrayList<>();
+    private final List<Object> parameterList = new ArrayList<>();
     private final SimpleDb simpleDb;
 
     public Sql(SimpleDb simpleDb) {
         this.simpleDb = simpleDb;
     }
 
-    public Sql append(String part) {
+    public Sql append(String part, Object... params) {
         query.append(part).append("\n");
-        return this;
-    }
-
-    public Sql append(String part, Object param) {
-        query.append(part).append("\n");
-        params.add(param);
+        parameterList.addAll(Arrays.asList(params));
         return this;
     }
 
     public long insert() {
-        return simpleDb.run(query.toString(), params.toArray());
+        return simpleDb.run(query.toString(), parameterList.toArray());
+    }
+
+    public int update() {
+        return simpleDb.run(query.toString(), parameterList.toArray());
     }
 }

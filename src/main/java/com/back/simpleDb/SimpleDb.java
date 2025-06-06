@@ -21,7 +21,7 @@ public class SimpleDb {
         this.password = password;
     }
 
-    public long run(String query, Object... params) {
+    public int run(String query, Object... params) {
         try (Connection connection = DriverManager.getConnection(url, username, password);
             PreparedStatement pstmt = connection.prepareStatement(query)) {
             for (int i = 0; i < params.length; i++) {
