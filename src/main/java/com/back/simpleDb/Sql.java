@@ -26,4 +26,8 @@ public class Sql {
     public int update() {
         return simpleDb.run(query.toString(), parameterList.toArray());
     }
+
+    public int delete() {
+        return simpleDb.run(query.toString(), parameterList.toArray());
+    }
 }
