@@ -1,5 +1,6 @@
 package com.back.simpleDb;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,5 +39,9 @@ public class Sql {
 
     public Map<String, Object> selectRow() {
         return simpleDb.select(query.toString());
+    }
+
+    public LocalDateTime selectDatetime() {
+        return simpleDb.selectDatetime(query.toString());
     }
 }

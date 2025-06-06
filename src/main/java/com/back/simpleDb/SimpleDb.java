@@ -3,6 +3,7 @@ package com.back.simpleDb;
 import lombok.Setter;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,7 +29,7 @@ public class SimpleDb {
 
     public List<Map<String, Object>> selectAll(String query) {
         return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery();) {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
                 ResultSetMetaData metaData = resultSet.getMetaData();
                 int columnCount = metaData.getColumnCount();
                 List<Map<String, Object>> result = new ArrayList<>();
@@ -49,7 +50,7 @@ public class SimpleDb {
 
     public Map<String, Object> select(String query) {
         return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery(query)) {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
                 ResultSetMetaData metaData = resultSet.getMetaData();
                 int columnCount = metaData.getColumnCount();
                 Map<String, Object> row = new LinkedHashMap<>();
@@ -60,6 +61,19 @@ public class SimpleDb {
                     }
                 }
                 return row;
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }, query);
+    }
+
+    public LocalDateTime selectDatetime(String query) {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getTimestamp(resultSet.getRow()).toLocalDateTime();
+                }
+                return null;
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
