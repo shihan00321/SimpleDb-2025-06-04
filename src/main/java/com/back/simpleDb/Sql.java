@@ -83,6 +83,14 @@ public class Sql {
         });
     }
 
+    public Boolean selectBoolean() {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                return resultSet.next() ? resultSet.getBoolean(1) : null;
+            }
+        });
+    }
+
     private Map<String, Object> resultSetToMap(ResultSet rs) throws SQLException {
         Map<String, Object> row = new LinkedHashMap<>();
         ResultSetMetaData metaData = rs.getMetaData();
