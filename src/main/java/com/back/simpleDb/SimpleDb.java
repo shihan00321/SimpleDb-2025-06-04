@@ -2,10 +2,11 @@ package com.back.simpleDb;
 
 import lombok.Setter;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Setter
 public class SimpleDb {
@@ -23,11 +24,32 @@ public class SimpleDb {
 
     public int run(String query, Object... params) {
         try (Connection connection = DriverManager.getConnection(url, username, password);
-            PreparedStatement pstmt = connection.prepareStatement(query)) {
+             PreparedStatement pstmt = connection.prepareStatement(query)) {
             for (int i = 0; i < params.length; i++) {
                 pstmt.setObject(i + 1, params[i]);
             }
             return pstmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public List<Map<String, Object>> select(String query) {
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement pstmt = connection.prepareStatement(query)) {
+            ResultSet resultSet = pstmt.executeQuery();
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+            List<Map<String, Object>> result = new ArrayList<>();
+            while (resultSet.next()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                for (int i = 1; i <= columnCount; i++) {
+                    String columnName = metaData.getColumnName(i);
+                    row.put(columnName, resultSet.getObject(columnName));
+                }
+                result.add(row);
+            }
+            return result;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

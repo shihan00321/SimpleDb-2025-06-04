@@ -3,6 +3,7 @@ package com.back.simpleDb;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 public class Sql {
     private final StringBuilder query = new StringBuilder();
@@ -29,5 +30,9 @@ public class Sql {
 
     public int delete() {
         return simpleDb.run(query.toString(), parameterList.toArray());
+    }
+
+    public List<Map<String, Object>> selectRows() {
+        return simpleDb.select(query.toString());
     }
 }
