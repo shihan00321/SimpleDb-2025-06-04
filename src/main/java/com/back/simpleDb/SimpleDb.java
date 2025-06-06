@@ -23,33 +23,37 @@ public class SimpleDb {
     }
 
     public int run(String query, Object... params) {
-        try (Connection connection = DriverManager.getConnection(url, username, password);
+        return execute(pstmt -> pstmt.executeUpdate(), query, params);
+    }
+
+    public List<Map<String, Object>> select(String query) {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery();) {
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                int columnCount = metaData.getColumnCount();
+                List<Map<String, Object>> result = new ArrayList<>();
+                while (resultSet.next()) {
+                    Map<String, Object> row = new LinkedHashMap<>();
+                    for (int i = 1; i <= columnCount; i++) {
+                        String columnName = metaData.getColumnName(i);
+                        row.put(columnName, resultSet.getObject(columnName));
+                    }
+                    result.add(row);
+                }
+                return result;
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }, query);
+    }
+
+    private <T> T execute(QueryExecutor<T> queryExecutor, String query, Object... params) {
+        try (Connection connection = getConnection();
              PreparedStatement pstmt = connection.prepareStatement(query)) {
             for (int i = 0; i < params.length; i++) {
                 pstmt.setObject(i + 1, params[i]);
             }
-            return pstmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public List<Map<String, Object>> select(String query) {
-        try (Connection connection = DriverManager.getConnection(url, username, password);
-             PreparedStatement pstmt = connection.prepareStatement(query)) {
-            ResultSet resultSet = pstmt.executeQuery();
-            ResultSetMetaData metaData = resultSet.getMetaData();
-            int columnCount = metaData.getColumnCount();
-            List<Map<String, Object>> result = new ArrayList<>();
-            while (resultSet.next()) {
-                Map<String, Object> row = new LinkedHashMap<>();
-                for (int i = 1; i <= columnCount; i++) {
-                    String columnName = metaData.getColumnName(i);
-                    row.put(columnName, resultSet.getObject(columnName));
-                }
-                result.add(row);
-            }
-            return result;
+            return queryExecutor.execute(pstmt);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -57,5 +61,9 @@ public class SimpleDb {
 
     public Sql genSql() {
         return new Sql(this);
+    }
+
+    private Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(url, username, password);
     }
 }
