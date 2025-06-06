@@ -26,7 +26,7 @@ public class SimpleDb {
         return execute(pstmt -> pstmt.executeUpdate(), query, params);
     }
 
-    public List<Map<String, Object>> select(String query) {
+    public List<Map<String, Object>> selectAll(String query) {
         return execute(pstmt -> {
             try (ResultSet resultSet = pstmt.executeQuery();) {
                 ResultSetMetaData metaData = resultSet.getMetaData();
@@ -41,6 +41,25 @@ public class SimpleDb {
                     result.add(row);
                 }
                 return result;
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }, query);
+    }
+
+    public Map<String, Object> select(String query) {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery(query)) {
+                ResultSetMetaData metaData = resultSet.getMetaData();
+                int columnCount = metaData.getColumnCount();
+                Map<String, Object> row = new LinkedHashMap<>();
+                while (resultSet.next()) {
+                    for (int i = 1; i <= columnCount; i++) {
+                        String columnName = metaData.getColumnName(i);
+                        row.put(columnName, resultSet.getObject(columnName));
+                    }
+                }
+                return row;
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -66,4 +85,5 @@ public class SimpleDb {
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(url, username, password);
     }
+
 }

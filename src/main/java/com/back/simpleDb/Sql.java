@@ -33,6 +33,10 @@ public class Sql {
     }
 
     public List<Map<String, Object>> selectRows() {
+        return simpleDb.selectAll(query.toString());
+    }
+
+    public Map<String, Object> selectRow() {
         return simpleDb.select(query.toString());
     }
 }
