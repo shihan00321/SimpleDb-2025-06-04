@@ -1,17 +1,25 @@
 package com.back.simpleDb;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class Sql {
-    private final StringBuilder query = new StringBuilder();
-    private final List<Object> params = new ArrayList<>();
+    private final StringBuilder query;
+    private final List<Object> params;
     private final Connection connection;
+
+    private final ObjectMapper objectMapper;
 
     public Sql(Connection connection) {
         this.connection = connection;
+        query = new StringBuilder();
+        params = new ArrayList<>();
+        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule()); // LocalDateTime 처리를 위해 등록
     }
 
     public Sql append(String part, Object... params) {
@@ -85,9 +93,20 @@ public class Sql {
 
     public Map<String, Object> selectRow() {
         return execute(pstmt -> {
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return resultSetToMap(rs);
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSetToMap(resultSet);
+                }
+                return null;
+            }
+        });
+    }
+
+    public <T> T selectRow(Class<T> clazz) {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                if (resultSet.next()) {
+                   return objectMapper.convertValue(resultSetToMap(resultSet), clazz);
                 }
                 return null;
             }
@@ -96,10 +115,24 @@ public class Sql {
 
     public List<Map<String, Object>> selectRows() {
         return execute(pstmt -> {
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
                 List<Map<String, Object>> result = new ArrayList<>();
-                while (rs.next()) {
-                    result.add(resultSetToMap(rs));
+                while (resultSet.next()) {
+                    result.add(resultSetToMap(resultSet));
+                }
+                return result;
+            }
+        });
+    }
+
+    public <T> List<T> selectRows(Class<T> clazz) {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                List<T> result = new ArrayList<>();
+                while (resultSet.next()) {
+                    Map<String, Object> map = resultSetToMap(resultSet);
+                    T data = objectMapper.convertValue(map, clazz);
+                    result.add(data);
                 }
                 return result;
             }
