@@ -14,22 +14,26 @@ public class SimpleDb {
     private final String username;
     private final String password;
     private boolean devMode;
+    private final ThreadLocal<Connection> connectionThreadLocal;
 
     public SimpleDb(String host, String username, String password, String database) {
         this.url = "jdbc:mysql://" + host + ":3306/" + database;
         this.username = username;
         this.password = password;
+        connectionThreadLocal = new ThreadLocal<>();
     }
 
     public int run(String query, Object... params) {
-        try (Connection connection = getConnection();
-             PreparedStatement pstmt = connection.prepareStatement(query)) {
+        Connection connection = getConnection();
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
             for (int i = 0; i < params.length; i++) {
                 pstmt.setObject(i + 1, params[i]);
             }
             return pstmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        } finally {
+            close();
         }
     }
 
@@ -38,8 +42,24 @@ public class SimpleDb {
     }
 
     private Connection getConnection() {
+        Connection connection = connectionThreadLocal.get();
         try {
-            return DriverManager.getConnection(url, username, password);
+            if (connection == null || connection.isClosed()) {
+                connection = DriverManager.getConnection(url, username, password);
+                connectionThreadLocal.set(connection);
+            }
+            return connection;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void close() {
+        try {
+            Connection connection = connectionThreadLocal.get();
+            if (connection != null && !connection.isClosed()) {
+                connection.close();
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
