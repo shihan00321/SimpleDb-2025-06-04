@@ -63,6 +63,18 @@ public class Sql {
         });
     }
 
+    public List<Long> selectLongs() {
+        return execute(pstmt -> {
+            try (ResultSet resultSet = pstmt.executeQuery()) {
+                List<Long> list = new ArrayList<>();
+                while (resultSet.next()) {
+                    list.add(resultSet.getLong(1));
+                }
+                return list;
+            }
+        });
+    }
+
     public String selectString() {
         return execute(pstmt -> {
             try (ResultSet resultSet = pstmt.executeQuery()) {
