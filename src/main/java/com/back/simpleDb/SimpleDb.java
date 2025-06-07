@@ -33,7 +33,9 @@ public class SimpleDb {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally {
-            close();
+            if (!devMode) {
+                close();
+            }
         }
     }
 
@@ -60,6 +62,37 @@ public class SimpleDb {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void startTransaction() {
+        try {
+            Connection connection = getConnection();
+            connection.setAutoCommit(false);
+            devMode = true;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void rollback() {
+        try {
+            Connection connection = getConnection();
+            connection.rollback();
+            devMode = false;
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void commit() {
+        try {
+            Connection connection = getConnection();
+            connection.commit();
+            connection.setAutoCommit(true);
+            devMode = false;
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
