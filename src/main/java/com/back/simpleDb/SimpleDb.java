@@ -62,6 +62,7 @@ public class SimpleDb {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
+            connectionThreadLocal.remove();
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -81,9 +82,11 @@ public class SimpleDb {
         try {
             Connection connection = getConnection();
             connection.rollback();
-            devMode = false;
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        } finally {
+            devMode = false;
+            close();
         }
     }
 
@@ -92,9 +95,11 @@ public class SimpleDb {
             Connection connection = getConnection();
             connection.commit();
             connection.setAutoCommit(true);
-            devMode = false;
         } catch (SQLException e) {
             throw new RuntimeException(e);
+        } finally {
+            devMode = false;
+            close();
         }
     }
 }

@@ -51,66 +51,33 @@ public class Sql {
     }
 
     public LocalDateTime selectDatetime() {
-        return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getTimestamp(resultSet.getRow()).toLocalDateTime();
-                }
-                return null;
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
+        return selectSingle(resultSet -> resultSet.getTimestamp(1).toLocalDateTime());
     }
 
     public Long selectLong() {
-        return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                return resultSet.next() ? resultSet.getLong(1) : null;
-            }
-        });
-    }
-
-    public List<Long> selectLongs() {
-        return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                List<Long> list = new ArrayList<>();
-                while (resultSet.next()) {
-                    list.add(resultSet.getLong(1));
-                }
-                return list;
-            }
-        });
+        return selectSingle(resultSet -> resultSet.getLong(1));
     }
 
     public String selectString() {
-        return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                return resultSet.next() ? resultSet.getString(1) : null;
-            }
-        });
+        return selectSingle(resultSet -> resultSet.getString(1));
     }
 
+    public Boolean selectBoolean() {
+        return selectSingle(resultSet -> resultSet.getBoolean(1));
+    }
+
+    public List<Long> selectLongs() {
+        return selectList(resultSet -> resultSet.getLong(1));
+    }
+
+
     public Map<String, Object> selectRow() {
-        return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSetToMap(resultSet);
-                }
-                return null;
-            }
-        });
+        return selectSingle(resultSet -> resultSetToMap(resultSet));
     }
 
     public <T> T selectRow(Class<T> clazz) {
-        return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                if (resultSet.next()) {
-                   return objectMapper.convertValue(resultSetToMap(resultSet), clazz);
-                }
-                return null;
-            }
-        });
+        Map<String, Object> row = selectRow();
+        return row != null ? objectMapper.convertValue(row, clazz) : null;
     }
 
     public List<Map<String, Object>> selectRows() {
@@ -126,23 +93,42 @@ public class Sql {
     }
 
     public <T> List<T> selectRows(Class<T> clazz) {
+        return selectRows().stream()
+                .map(row -> objectMapper.convertValue(row, clazz))
+                .collect(Collectors.toList());
+    }
+
+    private <T> T execute(QueryExecutor<T> queryExecutor) {
+        try (PreparedStatement pstmt = connection.prepareStatement(query.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                pstmt.setObject(i + 1, params.get(i));
+            }
+            return queryExecutor.execute(pstmt);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private int executeUpdate() {
+        return execute(PreparedStatement::executeUpdate);
+    }
+
+    private <T> T selectSingle(ResultSetExecutor<T> extractor) {
         return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                List<T> result = new ArrayList<>();
-                while (resultSet.next()) {
-                    Map<String, Object> map = resultSetToMap(resultSet);
-                    T data = objectMapper.convertValue(map, clazz);
-                    result.add(data);
-                }
-                return result;
+            try (ResultSet rs = pstmt.executeQuery()) {
+                return rs.next() ? extractor.execute(rs) : null;
             }
         });
     }
 
-    public Boolean selectBoolean() {
+    private <T> List<T> selectList(ResultSetExecutor<T> extractor) {
         return execute(pstmt -> {
-            try (ResultSet resultSet = pstmt.executeQuery()) {
-                return resultSet.next() ? resultSet.getBoolean(1) : null;
+            try (ResultSet rs = pstmt.executeQuery()) {
+                List<T> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(extractor.execute(rs));
+                }
+                return result;
             }
         });
     }
@@ -156,20 +142,5 @@ public class Sql {
             row.put(columnName, rs.getObject(i));
         }
         return row;
-    }
-
-    private int executeUpdate() {
-        return execute(PreparedStatement::executeUpdate);
-    }
-
-    private <T> T execute(QueryExecutor<T> queryExecutor) {
-        try (PreparedStatement pstmt = connection.prepareStatement(query.toString())) {
-            for (int i = 0; i < params.size(); i++) {
-                pstmt.setObject(i + 1, params.get(i));
-            }
-            return queryExecutor.execute(pstmt);
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
